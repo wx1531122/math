@@ -98,18 +98,80 @@ CSV 文件的每一行代表一个题目，包含以下列：
 * **题目难度分级与智能推荐。**
 * **OCR 辅助录入：** 从图片中识别题目文本（较复杂）。
 
-## 6. 如何开始 (Getting Started - Placeholder)
+## 6. 如何开始 (Getting Started)
 
-*(这部分将在代码完成后填充，通常包括如何安装依赖、如何运行程序等)*
+This section provides instructions on how to set up and run the Elementary Math Problem Assistant.
 
-* **依赖安装：**
+### 6.1. 先决条件 (Prerequisites)
+
+*   **Python 3.x:** Ensure you have Python 3 (version 3.7 or newer recommended) installed on your system. You can download it from [python.org](https://www.python.org/).
+
+### 6.2. 依赖安装 (Dependencies)
+
+The primary external dependency is the `google-generativeai` library for interacting with the Google Gemini API.
+
+1.  **Install the library using pip:**
+    Open your terminal or command prompt and run:
     ```bash
     pip install google-generativeai
-    # 其他可能需要的库
     ```
-* **配置：**
-    * 设置 Google Gemini API Key (例如通过环境变量或配置文件)。
-* **运行程序：**
+    This command will also install any necessary sub-dependencies.
+
+### 6.3. 配置 (Configuration)
+
+#### Google Gemini API Key
+
+The system requires a Google Gemini API Key to generate detailed solution steps for the math problems.
+
+1.  **Obtain an API Key:**
+    *   Visit the [Google AI Studio](https://aistudio.google.com/) (formerly Google Makersuite).
+    *   Create a new API key if you don't have one already.
+
+2.  **Set the API Key as an Environment Variable:**
+    The application expects the API key to be available as an environment variable named `GEMINI_API_KEY`.
+
+    *   **For Linux/macOS (bash/zsh):**
+        Open your terminal and run:
+        ```bash
+        export GEMINI_API_KEY="YOUR_API_KEY_HERE"
+        ```
+        Replace `"YOUR_API_KEY_HERE"` with your actual API key. To make this permanent, add this line to your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`) and then source it (e.g., `source ~/.bashrc`) or open a new terminal session.
+
+    *   **For Windows (Command Prompt):**
+        ```cmd
+        set GEMINI_API_KEY=YOUR_API_KEY_HERE
+        ```
+        Replace `YOUR_API_KEY_HERE` with your actual API key. This command sets the variable for the current session only. For a more permanent solution, you can set it via "Environment Variables" in System Properties.
+
+    *   **For Windows (PowerShell):**
+        ```powershell
+        $env:GEMINI_API_KEY="YOUR_API_KEY_HERE"
+        ```
+        Replace `"YOUR_API_KEY_HERE"` with your actual API key. This sets the variable for the current session. To make it permanent, you can add this to your PowerShell profile script.
+
+    **Important:** If the `GEMINI_API_KEY` environment variable is not set or is invalid, the solution generation feature will still run but will provide mock/placeholder responses instead of actual AI-generated steps. Other functionalities of the application (adding problems, viewing, exporting without solutions) will work normally.
+
+### 6.4. 运行程序 (Running the Program)
+
+Once dependencies are installed and the API key is configured (optional for basic use, required for solution generation):
+
+1.  **Navigate to the project directory:**
+    Open your terminal or command prompt and change to the directory where you have saved the project files (e.g., `main_cli.py`, `problem_manager.py`, etc.).
+    ```bash
+    cd path/to/your/project_directory
+    ```
+
+2.  **Run the main command-line interface:**
     ```bash
     python main_cli.py
     ```
+
+3.  **Using the Application:**
+    Upon running the command, a menu will appear with the following options:
+    *   **Add New Problem:** Allows you to input the problem text, type, answer, and an optional source.
+    *   **Generate Solution Steps:** Prompts for a Problem ID and uses the Gemini API (if configured) to generate solution steps.
+    *   **View All Problems:** Displays all problems currently stored in the `data/problems.csv` file.
+    *   **Export Problems to HTML:** Allows you to export problems (all or filtered by type, with or without solutions) to an HTML file suitable for viewing and printing.
+    *   **Exit:** Closes the application.
+
+    Follow the on-screen prompts to interact with the system. The problem data will be stored in a `data` subdirectory (created automatically if it doesn't exist) in a file named `problems.csv`.
