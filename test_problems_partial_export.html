@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Problems Export</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        .page-container { max-width: 800px; margin: auto; }
+        .problem-container { page-break-inside: avoid; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .problem-header { margin-bottom: 10px; }
+        .problem-id { font-weight: bold; color: #333; font-size: 1.1em; }
+        .problem-type { font-style: italic; color: #555; margin-left: 10px; font-size: 0.9em; }
+        .problem-text { margin-top: 5px; margin-bottom: 10px; font-size: 1.2em; color: #000; }
+        .answer-section { margin-left: 20px; margin-bottom: 10px; }
+        .answer-label { font-weight: bold; color: #4CAF50; }
+        .answer-text { margin-left: 5px; }
+        .solution-steps-label { font-weight: bold; color: #007BFF; margin-top:10px }
+        .solution-steps { margin-left: 20px; white-space: pre-wrap; background-color: #f9f9f9; border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
+        h1 { text-align: center; color: #333; border-bottom: 2px solid #333; padding-bottom:10px; }
+        @media print {
+            body { margin: 0.5in; font-size: 10pt; }
+            .problem-container { border-bottom: 1px solid #ccc; }
+            h1 { font-size: 18pt; }
+            .page-container { max-width: 100%; margin: 0; }
+            .solution-steps { background-color: #fff; border: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-container">
+    <h1>Math Problems</h1>
+    <div class="problem-container">
+        <div class="problem-header">
+            <span class="problem-id">Problem ID: P001</span>
+            <span class="problem-type">Type: Arithmetic</span>
+        </div>
+        <div class="problem-text">What is 2 + 2? Explain like I&#x27;m five.</div>
+    </div>
+    <div class="problem-container">
+        <div class="problem-header">
+            <span class="problem-id">Problem ID: P002</span>
+            <span class="problem-type">Type: Multiplication</span>
+        </div>
+        <div class="problem-text">If a cat has 4 legs, how many legs do 3 cats have in total?</div>
+    </div>
+    <div class="problem-container">
+        <div class="problem-header">
+            <span class="problem-id">Problem ID: P003</span>
+            <span class="problem-type">Type: Geography</span>
+        </div>
+        <div class="problem-text">What is the capital of France?</div>
+    </div>
+    <div class="problem-container">
+        <div class="problem-header">
+            <span class="problem-id">Problem ID: P004</span>
+            <span class="problem-type">Type: Short Export</span>
+        </div>
+        <div class="problem-text">This problem only has text and will be exported with export_full=False.</div>
+    </div>
+</div>
+</body>
+</html>

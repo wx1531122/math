@@ -1,0 +1,3 @@
+problem_id,problem_text,problem_type,answer,solution_steps_gemini,source
+P001,What is 2+2?,arithmetic,4,"Step 1: 2, Step 2: Add 2, Step 3: Equals 4",test_case
+P002,What is the capital of France?,geography,Paris,,test_case
