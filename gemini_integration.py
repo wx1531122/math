@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 MOCK_SOLUTION_ENABLED = True # Set to False to disable mock response when API key is missing
 MOCK_SOLUTION_TEXT = "Solution steps would be generated here by Gemini API. (Mock Response)"
 
-def generate_solution_steps(problem_text, problem_type, answer=None):
+def generate_solution_steps(problem_text, problem_type, answer=None, student_level=None):
     """
     Generates step-by-step solution for a given problem using the Gemini API.
 
@@ -21,6 +21,8 @@ def generate_solution_steps(problem_text, problem_type, answer=None):
         problem_text (str): The text of the problem.
         problem_type (str): The type of the problem (e.g., "arithmetic", "algebra").
         answer (str, optional): The correct answer to the problem. Defaults to None.
+        student_level (str, optional): The target student level (e.g., "lower_elementary", "upper_elementary").
+                                      Defaults to None for a general prompt.
 
     Returns:
         str: The generated solution steps as a string,
@@ -46,17 +48,25 @@ def generate_solution_steps(problem_text, problem_type, answer=None):
         logger.error(error_msg)
         return error_msg
 
-    # Construct the prompt
+    # Construct the prompt based on student_level
+    base_prompt = ""
+    if student_level == 'lower_elementary':
+        base_prompt = "You are a kind and patient tutor for young children (grades 1-3). Explain how to solve this math problem using very simple words and short sentences. If you can, use a fun story or a real-life example that a small child would understand. Break down the solution into tiny, easy steps."
+    elif student_level == 'upper_elementary':
+        base_prompt = "You are a friendly and encouraging math tutor for older elementary students (grades 4-6). Explain the solution to this math problem step-by-step. Use clear language that a 10-12 year old can follow. You can use slightly more complex terms if they are helpful, but explain them simply."
+    else: # Default prompt
+        base_prompt = "You are a friendly math tutor for elementary school students. Explain how to solve the following math problem step-by-step so a child can easily understand."
+
     prompt_lines = [
-        "You are a friendly math tutor for elementary school students. Explain how to solve the following math problem step-by-step so a child can easily understand.",
+        base_prompt,
         f"Problem Type: {problem_type}",
         f"Problem: \"{problem_text}\""
     ]
     if answer:
         prompt_lines.append(f"Correct Answer: {answer}")
-    prompt_lines.append("Provide the solution steps:")
+    prompt_lines.append("\nProvide the solution steps clearly:") # Added a newline for clarity before steps
 
-    prompt = "\n".join(prompt_lines)
+    prompt = "\n\n".join(prompt_lines) # Use double newline for better separation of preamble and problem details
 
     try:
         # Initialize the generative model
@@ -109,8 +119,8 @@ if __name__ == '__main__':
     problem1_type = "Addition"
     problem1_answer = "8"
 
-    solution1 = generate_solution_steps(problem1_text, problem1_type, problem1_answer)
-    print(f"Problem: {problem1_text}")
+    solution1 = generate_solution_steps(problem1_text, problem1_type, problem1_answer, student_level="lower_elementary")
+    print(f"Problem: {problem1_text} (lower_elementary)")
     print(f"Solution:\n{solution1}")
 
     # Check if it's a mock response or an actual API key error message
@@ -133,8 +143,8 @@ if __name__ == '__main__':
         problem2_type = "Subtraction"
         problem2_answer = "7"
 
-        solution2 = generate_solution_steps(problem2_text, problem2_type, problem2_answer)
-        print(f"Problem: {problem2_text}")
+        solution2 = generate_solution_steps(problem2_text, problem2_type, problem2_answer, student_level="upper_elementary")
+        print(f"Problem: {problem2_text} (upper_elementary)")
         print(f"Solution:\n{solution2}")
         assert solution2 is not None
         assert "Error" not in solution2 # Basic check that it's not an error message
@@ -144,8 +154,8 @@ if __name__ == '__main__':
         print("\n--- Test Case 3: API Key IS Set, No Answer Provided (Actual API Call) ---")
         problem3_text = "What is 4 multiplied by 6?"
         problem3_type = "Multiplication"
-        solution3 = generate_solution_steps(problem3_text, problem3_type)
-        print(f"Problem: {problem3_text}")
+        solution3 = generate_solution_steps(problem3_text, problem3_type) # Test with default student_level
+        print(f"Problem: {problem3_text} (default level)")
         print(f"Solution:\n{solution3}")
         assert solution3 is not None
         assert "Error" not in solution3
