@@ -1,10 +1,13 @@
 import os
+import logging
 import google.generativeai as genai
 # To handle potential API errors specifically, though a general Exception is also used.
 from google.api_core import exceptions as google_exceptions
 
 # Environment variable for the API key
 API_KEY_ENV_VAR = "GEMINI_API_KEY"
+
+logger = logging.getLogger(__name__)
 
 # Placeholder for when API key is not available
 MOCK_SOLUTION_ENABLED = True # Set to False to disable mock response when API key is missing
@@ -28,11 +31,11 @@ def generate_solution_steps(problem_text, problem_type, answer=None):
 
     if not api_key:
         if MOCK_SOLUTION_ENABLED:
-            print(f"Warning: Environment variable {API_KEY_ENV_VAR} not set. Returning mock solution.")
+            logger.warning(f"Environment variable {API_KEY_ENV_VAR} not set. Returning mock solution.")
             return MOCK_SOLUTION_TEXT
         else:
             error_msg = f"Error: Gemini API key not found. Set the environment variable {API_KEY_ENV_VAR}."
-            print(error_msg)
+            logger.error(error_msg)
             # Depending on desired behavior, could raise ValueError(error_msg)
             return error_msg
 
@@ -40,7 +43,7 @@ def generate_solution_steps(problem_text, problem_type, answer=None):
         genai.configure(api_key=api_key)
     except Exception as e:
         error_msg = f"Error configuring Gemini API: {e}"
-        print(error_msg)
+        logger.error(error_msg)
         return error_msg
 
     # Construct the prompt
@@ -75,22 +78,21 @@ def generate_solution_steps(problem_text, problem_type, answer=None):
             else:
                 # This case might occur if the response was successful but contained no text,
                 # or if the model refused to answer (e.g. safety settings).
-                print("Warning: Gemini API returned an empty response.")
+                logger.warning("Gemini API returned an empty response.")
                 return "Error: Gemini API returned an empty response."
         else:
             # Handle cases where the response object itself is not as expected or parts are missing.
-            print("Warning: Gemini API response structure was not as expected or was empty.")
+            logger.warning("Gemini API response structure was not as expected or was empty.")
             return "Error: Gemini API returned an invalid or empty response structure."
 
     except google_exceptions.GoogleAPIError as e:
         error_msg = f"Gemini API Error: {e}"
-        print(error_msg)
+        logger.error(error_msg)
         return error_msg
     except Exception as e:
         # Catch any other exceptions during API call or response processing
-        error_msg = f"An unexpected error occurred during Gemini API interaction: {e}"
-        print(error_msg)
-        return error_msg
+        logger.exception("An unexpected error occurred during Gemini API interaction")
+        return f"An unexpected error occurred during Gemini API interaction: {e}" # Ensure an error string is returned
 
 if __name__ == '__main__':
     print("Testing Gemini Integration Module...")
