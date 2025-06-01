@@ -1,5 +1,8 @@
 import csv
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FILEPATH = "data/problems.csv"
 HEADERS = ["problem_id", "problem_text", "problem_type", "answer", "solution_steps_gemini", "source"]
@@ -32,11 +35,11 @@ def load_problems(filepath=DEFAULT_FILEPATH):
                 # For simplicity, we could just rely on _initialize_csv to always fix it
                 # but an explicit check can be useful for debugging.
                 if not reader.fieldnames and os.path.getsize(filepath) > 0: # File has content but no headers DictReader could parse
-                    print(f"Warning: CSV file {filepath} appears to be missing headers. Attempting to re-initialize.")
+                    logger.warning(f"CSV file {filepath} appears to be missing headers. Attempting to re-initialize.")
                     # This scenario is tricky, if there's data without headers, re-initializing might be destructive.
                     # For now, we'll proceed assuming _initialize_csv handles it, or it's empty.
                 elif reader.fieldnames and set(reader.fieldnames) != set(HEADERS):
-                     print(f"Warning: CSV file {filepath} has incorrect headers. Expected {HEADERS}, got {reader.fieldnames}")
+                     logger.warning(f"CSV file {filepath} has incorrect headers. Expected {HEADERS}, got {reader.fieldnames}")
                      # Decide on a recovery strategy: overwrite, error out, or attempt to map.
                      # For now, we'll return empty to avoid data corruption.
                      return []
@@ -44,10 +47,10 @@ def load_problems(filepath=DEFAULT_FILEPATH):
             for row in reader:
                 problems.append(row)
     except FileNotFoundError:
-        print(f"Warning: File not found at {filepath}. Returning empty list.")
+        logger.warning(f"File not found at {filepath}. Returning empty list.")
         # _initialize_csv should have created it, so this is unlikely unless there's a race condition or permission issue
     except Exception as e:
-        print(f"Error loading problems from {filepath}: {e}")
+        logger.error(f"Error loading problems from {filepath}: {e}")
     return problems
 
 def save_problems(problems, filepath=DEFAULT_FILEPATH):
@@ -62,7 +65,7 @@ def save_problems(problems, filepath=DEFAULT_FILEPATH):
             writer.writeheader()
             writer.writerows(problems)
     except Exception as e:
-        print(f"Error saving problems to {filepath}: {e}")
+        logger.error(f"Error saving problems to {filepath}: {e}")
 
 def _generate_problem_id(existing_ids):
     """
@@ -265,3 +268,5 @@ print(f"problem_manager.py loaded. Main CSV: {DEFAULT_FILEPATH}")
 # It creates the directory if it doesn't exist.
 # It writes headers only if the file doesn't exist or is empty.
 # This should fulfill the requirement.
+
+logger.info(f"problem_manager.py loaded. Main CSV: {DEFAULT_FILEPATH}")

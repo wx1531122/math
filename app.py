@@ -1,4 +1,15 @@
 from flask import Flask, request, jsonify, make_response
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 # For now, we'll just import the modules to ensure they can be imported
 # Actual usage will come in later steps
@@ -8,7 +19,7 @@ try:
     from gemini_integration import generate_solution_steps
     from exporter import export_problems_to_html
 except ImportError as e:
-    print(f"Error importing modules: {e}")
+    logging.error(f"Error importing modules: {e}")
     # You might want to handle this more gracefully depending on your application's needs
     # For example, by exiting or disabling features that depend on these modules.
 
@@ -42,7 +53,7 @@ def create_problem():
 
     except Exception as e:
         # Log the exception e for debugging
-        print(f"Error in create_problem: {e}")
+        logging.exception("Error in create_problem")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app.route('/api/problems', methods=['GET'])
@@ -52,7 +63,7 @@ def get_problems():
         return jsonify(problems), 200
     except Exception as e:
         # Log the exception e for debugging
-        print(f"Error in get_problems: {e}")
+        logging.exception("Error in get_problems")
         return jsonify({"error": "An unexpected error occurred while retrieving problems"}), 500
 
 @app.route('/api/problems/<problem_id>', methods=['GET'])
@@ -65,7 +76,7 @@ def get_problem(problem_id):
             return jsonify({"error": "Problem not found"}), 404
     except Exception as e:
         # Log the exception e for debugging
-        print(f"Error in get_problem(problem_id={problem_id}): {e}")
+        logging.exception(f"Error in get_problem(problem_id={problem_id})")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app.route('/api/problems/<problem_id>/generate_solution', methods=['POST'])
@@ -76,7 +87,7 @@ def generate_solution_for_problem(problem_id):
         if not problem:
             return jsonify({"error": "Problem not found"}), 404
     except Exception as e:
-        print(f"Error retrieving problem {problem_id}: {e}")
+        logging.exception(f"Error retrieving problem {problem_id}")
         return jsonify({"error": f"An error occurred while retrieving problem {problem_id}"}), 500
 
     problem_text = problem.get('problem_text')
@@ -91,13 +102,13 @@ def generate_solution_for_problem(problem_id):
         generated_steps = generate_solution_steps(problem_text, problem_type, answer)
         if not generated_steps or generated_steps.startswith("Error:"):
             error_detail = generated_steps if generated_steps else "No content from Gemini."
-            print(f"Gemini API error for problem {problem_id}: {error_detail}")
+            logging.error(f"Gemini API error for problem {problem_id}: {error_detail}")
             return jsonify({
                 "error": "Failed to generate solution from Gemini API",
                 "details": error_detail
             }), 502 # Bad Gateway, as we depend on an upstream service
     except Exception as e:
-        print(f"Exception calling Gemini API for problem {problem_id}: {e}")
+        logging.exception(f"Exception calling Gemini API for problem {problem_id}")
         return jsonify({"error": "An unexpected error occurred while generating solution steps"}), 500
 
     # 3. Update the problem with the generated solution
@@ -106,10 +117,10 @@ def generate_solution_for_problem(problem_id):
         if not updated_problem_data:
              # This case might occur if update_problem_solution itself can't find the problem again
              # or if the update operation fails silently (though it should raise an exception ideally)
-            print(f"Failed to update problem {problem_id} after generating solution.")
+            logging.error(f"Failed to update problem {problem_id} after generating solution.")
             return jsonify({"error": "Failed to update problem with solution, problem may have been deleted."}), 500
     except Exception as e:
-        print(f"Error updating problem {problem_id} with solution: {e}")
+        logging.exception(f"Error updating problem {problem_id} with solution")
         return jsonify({"error": f"An error occurred while updating problem {problem_id} with the solution"}), 500
 
     # 4. Return the updated problem
@@ -119,11 +130,11 @@ def generate_solution_for_problem(problem_id):
         final_updated_problem = get_problem_by_id(problem_id)
         if not final_updated_problem:
             # Should ideally not happen if update was successful
-            print(f"Problem {problem_id} not found after successful update. This is unexpected.")
+            logging.error(f"Problem {problem_id} not found after successful update. This is unexpected.")
             return jsonify({"error": "Problem disappeared after update, please check system integrity."}), 500
         return jsonify(final_updated_problem), 200
     except Exception as e:
-        print(f"Error re-retrieving problem {problem_id} after update: {e}")
+        logging.exception(f"Error re-retrieving problem {problem_id} after update")
         return jsonify({"error": f"An error occurred retrieving the updated problem {problem_id}"}), 500
 
 @app.route('/api/problems/<problem_id>', methods=['PUT'])
@@ -131,7 +142,7 @@ def update_existing_problem(problem_id):
     try:
         all_problems = load_problems()
     except Exception as e:
-        print(f"Error loading problems for update: {e}")
+        logging.exception("Error loading problems for update")
         return jsonify({"error": "Failed to load problem data for update."}), 500
 
     problem_to_update = None
@@ -150,7 +161,7 @@ def update_existing_problem(problem_id):
         if not update_data:
             return jsonify({"error": "Invalid JSON payload for update"}), 400
     except Exception as e:
-        print(f"Error getting JSON for update problem {problem_id}: {e}")
+        logging.exception(f"Error getting JSON for update problem {problem_id}")
         return jsonify({"error": "Invalid JSON payload for update"}), 400
 
     # Fields that can be updated
@@ -171,7 +182,7 @@ def update_existing_problem(problem_id):
     try:
         save_problems(all_problems)
     except Exception as e:
-        print(f"Error saving problems after update for problem_id {problem_id}: {e}")
+        logging.exception(f"Error saving problems after update for problem_id {problem_id}")
         return jsonify({"error": "Failed to save updated problem data."}), 500
 
     # Return the modified problem dictionary
@@ -189,7 +200,7 @@ def export_problems_route():
         try:
             all_problems = load_problems()
         except Exception as e:
-            print(f"Error loading problems for export: {e}")
+            logging.exception("Error loading problems for export")
             return jsonify({"error": "Failed to load problem data for export."}), 500
 
         # Filter problems if type is specified
@@ -214,10 +225,10 @@ def export_problems_route():
         try:
             html_content = export_problems_to_html(problems_to_export, export_full=export_full_flag)
             if not html_content:
-                print("Export function returned empty content.")
+                logging.warning("Export function returned empty content.")
                 return jsonify({"error": "Failed to generate HTML content for export."}), 500
         except Exception as e:
-            print(f"Error during HTML export process: {e}")
+            logging.exception("Error during HTML export process")
             return jsonify({"error": "An unexpected error occurred during the export process."}), 500
 
         # Create and return response
@@ -228,8 +239,10 @@ def export_problems_route():
 
     except Exception as e:
         # Catch-all for any other unexpected errors
-        print(f"Unexpected error in export_problems_route: {e}")
+        logging.exception("Unexpected error in export_problems_route")
         return jsonify({"error": "An unexpected server error occurred."}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Consider whether to run with debug=True in production or rely on logging
+    logging.info("Starting Flask app")
+    app.run(debug=True) # Set debug=False for production
