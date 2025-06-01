@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, make_response
 import logging
 import sys
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -14,7 +15,10 @@ logging.basicConfig(
 # For now, we'll just import the modules to ensure they can be imported
 # Actual usage will come in later steps
 try:
-    from problem_manager import add_problem, load_problems, get_problem_by_id, update_problem_solution, save_problems
+    from problem_manager import (
+        add_problem, load_problems, get_problem_by_id,
+        update_problem_solution, save_problems, delete_problem
+    )
     import problem_manager # Keep this for now if other parts of problem_manager are needed directly
     from gemini_integration import generate_solution_steps
     from exporter import export_problems_to_html
@@ -59,7 +63,20 @@ def create_problem():
 @app.route('/api/problems', methods=['GET'])
 def get_problems():
     try:
+        # Retrieve potential filter parameters from request.args
+        filter_problem_type = request.args.get('problem_type', None)
+
         problems = load_problems()
+
+        if filter_problem_type:
+            # Perform case-insensitive filtering
+            filter_problem_type_lower = filter_problem_type.lower()
+            filtered_problems = [
+                p for p in problems
+                if p.get('problem_type', '').lower() == filter_problem_type_lower
+            ]
+            problems = filtered_problems # Replace original list with filtered list
+
         return jsonify(problems), 200
     except Exception as e:
         # Log the exception e for debugging
@@ -95,14 +112,23 @@ def generate_solution_for_problem(problem_id):
     answer = problem.get('answer')
 
     if not all([problem_text, problem_type, answer]):
-        return jsonify({"error": "Problem data is incomplete, cannot generate solution."}), 400
+        # Note: Answer might be optional for generation, but crucial for a good prompt.
+        # Depending on requirements, might allow generation without an answer.
+        # For now, keeping it as a required piece of info from the problem itself.
+        return jsonify({"error": "Problem data (text, type, answer) is incomplete, cannot generate solution."}), 400
+
+    # Get student_level from request JSON
+    student_level = None
+    request_data = request.get_json()
+    if request_data:
+        student_level = request_data.get('student_level')
 
     # 2. Generate solution steps via Gemini
     try:
-        generated_steps = generate_solution_steps(problem_text, problem_type, answer)
+        generated_steps = generate_solution_steps(problem_text, problem_type, answer, student_level=student_level)
         if not generated_steps or generated_steps.startswith("Error:"):
             error_detail = generated_steps if generated_steps else "No content from Gemini."
-            logging.error(f"Gemini API error for problem {problem_id}: {error_detail}")
+            logging.error(f"Gemini API error for problem {problem_id} (level: {student_level}): {error_detail}")
             return jsonify({
                 "error": "Failed to generate solution from Gemini API",
                 "details": error_detail
@@ -148,7 +174,7 @@ def update_existing_problem(problem_id):
     problem_to_update = None
     problem_idx = -1
     for i, p in enumerate(all_problems):
-        if p.get('id') == problem_id:
+        if p.get('problem_id') == problem_id: # Corrected 'id' to 'problem_id'
             problem_to_update = p
             problem_idx = i
             break
@@ -174,8 +200,22 @@ def update_existing_problem(problem_id):
             updated_fields_count +=1
 
     if updated_fields_count == 0:
-        return jsonify({"error": "No valid fields provided for update"}), 400
+        # If only timestamps are updated, this might be an issue.
+        # However, the task is to *set* updated_time, implying other fields might not change.
+        # For now, let's assume an update request should change at least one of the updatable_fields.
+        # If the only change is intended to be 'updated_time', this logic might need adjustment.
+        # Given the current structure, updated_time is added regardless.
+        pass # No return here if only updated_time is the change.
 
+    # Set/update the updated_time field
+    current_time_iso = datetime.now(timezone.utc).isoformat()
+    problem_to_update['updated_time'] = current_time_iso
+    # Ensure created_time is preserved if it exists, or set if this is an old record format.
+    if 'created_time' not in problem_to_update or not problem_to_update['created_time']:
+        # This case handles records that might have existed before created_time was introduced
+        # and are now being updated. It's a sensible default to set created_time to updated_time
+        # if it's missing, assuming this update is the first time it's being "timestamped".
+        problem_to_update['created_time'] = current_time_iso
 
     all_problems[problem_idx] = problem_to_update
 
@@ -187,6 +227,18 @@ def update_existing_problem(problem_id):
 
     # Return the modified problem dictionary
     return jsonify(problem_to_update), 200
+
+@app.route('/api/problems/<problem_id>', methods=['DELETE'])
+def delete_problem_endpoint(problem_id):
+    try:
+        deleted_successfully = delete_problem(problem_id)
+        if deleted_successfully:
+            return jsonify({"message": "Problem deleted successfully"}), 200
+        else:
+            return jsonify({"error": "Problem not found"}), 404
+    except Exception as e:
+        logging.exception(f"Error in delete_problem_endpoint for problem_id {problem_id}")
+        return jsonify({"error": "An unexpected error occurred during problem deletion"}), 500
 
 @app.route('/api/export/problems', methods=['GET'])
 def export_problems_route():

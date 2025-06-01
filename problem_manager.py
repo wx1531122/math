@@ -1,11 +1,12 @@
 import csv
 import os
 import logging
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILEPATH = "data/problems.csv"
-HEADERS = ["problem_id", "problem_text", "problem_type", "answer", "solution_steps_gemini", "source"]
+HEADERS = ["problem_id", "problem_text", "problem_type", "answer", "solution_steps_gemini", "source", "created_time", "updated_time"]
 
 def _initialize_csv(filepath):
     """Creates the CSV file with headers if it doesn't exist or is empty."""
@@ -94,6 +95,7 @@ def add_problem(problem_text, problem_type, answer, source="", filepath=DEFAULT_
     existing_ids = [p['problem_id'] for p in problems if 'problem_id' in p]
 
     new_id = _generate_problem_id(existing_ids)
+    current_time_iso = datetime.now(timezone.utc).isoformat()
 
     new_problem = {
         "problem_id": new_id,
@@ -101,7 +103,9 @@ def add_problem(problem_text, problem_type, answer, source="", filepath=DEFAULT_
         "problem_type": problem_type,
         "answer": answer,
         "solution_steps_gemini": "",  # Initially empty
-        "source": source
+        "source": source,
+        "created_time": current_time_iso,
+        "updated_time": current_time_iso
     }
 
     problems.append(new_problem)
@@ -137,6 +141,27 @@ def update_problem_solution(problem_id_to_update, solution_steps, filepath=DEFAU
         save_problems(problems, filepath=filepath)
         return True
     return False
+
+def delete_problem(problem_id_to_delete, filepath=DEFAULT_FILEPATH):
+    """
+    Deletes a problem from the CSV file based on its ID.
+    Returns True if the problem was found and deleted, False otherwise.
+    """
+    problems = load_problems(filepath=filepath)
+    initial_problem_count = len(problems)
+
+    # Filter out the problem to delete
+    problems_after_deletion = [
+        p for p in problems if p.get('problem_id') != problem_id_to_delete
+    ]
+
+    if len(problems_after_deletion) < initial_problem_count:
+        # A problem was removed
+        save_problems(problems_after_deletion, filepath=filepath)
+        return True
+    else:
+        # No problem was removed, meaning the ID was not found
+        return False
 
 if __name__ == '__main__':
     # Example Usage and Basic Tests
@@ -203,6 +228,24 @@ if __name__ == '__main__':
     assert _generate_problem_id(["P001", "P002", "P003", "P004", "P005", "P006", "P007", "P008", "P009"]) == "P010"
     assert _generate_problem_id(["P099"]) == "P100"
 
+    # Test delete_problem
+    print("\nTesting delete_problem...")
+    # Add a problem to delete first
+    add_problem("Problem to be deleted", "temp", "ans", filepath=test_file) #P003
+    delete_success = delete_problem("P003", filepath=test_file)
+    print(f"Deletion of P003 success: {delete_success}")
+    assert delete_success
+    deleted_problem = get_problem_by_id("P003", filepath=test_file)
+    assert deleted_problem is None, "Problem P003 should have been deleted"
+
+    all_problems_after_delete = load_problems(filepath=test_file)
+    print(f"All problems after deleting P003: {all_problems_after_delete}")
+    assert len(all_problems_after_delete) == 2, f"Expected 2 problems after deleting P003, got {len(all_problems_after_delete)}"
+
+
+    delete_fail_non_existent = delete_problem("P999", filepath=test_file)
+    print(f"Deletion of P999 success: {delete_fail_non_existent}")
+    assert not delete_fail_non_existent
 
     # Test loading from default file (ensure it uses the default path correctly)
     # This requires `data/problems.csv` to be potentially modified by these tests if not careful
