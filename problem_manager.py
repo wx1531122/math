@@ -251,7 +251,6 @@ if __name__ == '__main__':
 # _initialize_csv(DEFAULT_FILEPATH)
 # This line above was moved into load_problems and save_problems to be more robust.
 
-print(f"problem_manager.py loaded. Main CSV: {DEFAULT_FILEPATH}")
 # _initialize_csv(DEFAULT_FILEPATH) # Ensure it exists with headers if module is just imported.
 # This is a bit aggressive, usually an explicit setup step in your application is better.
 # For this task, let's ensure it's always initialized by load/save.

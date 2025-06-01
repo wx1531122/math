@@ -1,5 +1,8 @@
 import html
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def _escape(text):
     """Helper function to escape HTML characters. Returns empty string if text is None."""
@@ -108,13 +111,13 @@ def export_problems_to_html(problems_data, output_filename=None, export_full=Tru
 
             with open(output_filename, 'w', encoding='utf-8') as f:
                 f.write(final_html_string)
-            print(f"Successfully exported problems to {output_filename}")
+            logger.info(f"Successfully exported problems to {output_filename}")
             return True
         except IOError as e:
-            print(f"Error writing HTML file {output_filename}: {e}")
+            logger.error(f"Error writing HTML file {output_filename}: {e}")
             return False
         except Exception as e: # Catch any other unexpected errors
-            print(f"An unexpected error occurred during HTML export to file: {e}")
+            logger.error(f"An unexpected error occurred during HTML export to file: {e}")
             return False
     else:
         # If output_filename is None, return the HTML string
